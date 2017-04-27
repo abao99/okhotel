@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+	<meta charset="utf-8">
+		<meta name="viewport" content="width-device , initial-scale=1">
+		<link rel="stylesheet" type="text/css" href="./jquerymobile/jquery.mobile-1.4.5.min.css">
+		<link rel="stylesheet" type="text/css" href="./css/mycss.css">
+		<script type="text/javascript" src="./jquerymobile/jquery-2.1.0.min.js"></script>
+		<script type="text/javascript" src="./jquerymobile/jquery.mobile-1.4.5.min.js"></script>
+		<link href="styles.css" type="text/css" rel="stylesheet" />
+	
+		<link href="./photoswipe/photoswipe.css" type="text/css" rel="stylesheet" />
+	
+		<script type="text/javascript" src="./photoswipe/klass.min.js"></script>
+		<script type="text/javascript" src="./photoswipe/code.photoswipe-3.0.5.min.js"></script>
+</head>
+<script type="text/javascript">
+	
+	function aa(){
+		$.ajax({
+			type:"POST",
+			url:"./select_data.php",
+			dataType:"json",
+			
+			success:showval,
+			
+			error:function(data){
+				alert("error");
+			},
+		});
+		}
+	function showval(data){
+			var regionTitle= new Array(); //分區名稱
+			var counter= new Array(); //分區編號
+			var regionData= new Array(); //分區旅館資料
+			var wrong = new Array(); 
+			var count = 0;
+			
+			var msg2="";
+			var aa = 0;	
+			
+			for(i=0;i<data.length;i++){
+				var getRegion= data[i]["display_addr"].substring(0,data[i]["display_addr"].indexOf("區",0)+1);//indexOf("區",0) 取得'區'的位置編號
+				if(getRegion == ""){
+					wrong.push(new Array());
+					wrong[count] = i ;
+					count++;
+				}
+
+				if(counter[getRegion] == undefined){
+					counter[getRegion] = regionData.length; //紀錄分區編號
+					regionData.push(new Array()); //新增一筆空紀錄
+					regionTitle[counter[getRegion]] = getRegion; //紀錄分區名稱
+
+				}
+				regionData[counter[getRegion]].push(data[i]); //將整筆資料存入
+			}
+
+
+			$("#msg1").empty();
+			// cntRegion 代表台北市有旅館共有幾區
+			for( var i=0 ,cntRegion=regionData.length ; i<cntRegion ; ++i ){
+				var pageTitle = ""; // 儲存 [名稱]
+				var pageAddr=""; // 儲存 [地址]
+				var pageTel=""; // 儲存 [電話]
+				
+				// subCnt 代表每一區的旅館數目
+				for( var j=0,subCnt=regionData[i].length ; j<subCnt ; ++j ){
+					pageTitle+=regionData[i][j]["name"]+"|"; // 組合 [名稱]
+					pageAddr+=regionData[i][j]["display_addr"]+"|"; // 組合 [地址]
+					pageTel+="聯絡電話："+regionData[i][j]["tel"]+"|"; // 組合 [電話]
+				}
+				var strHtml= '<li class="ui-btn ui-btn-icon-right ui-icon-carat-r"><a href="#hotel"';
+				strHtml+= 'page-title="' + pageTitle + '" page-addr="' + pageAddr + '" page-tel="' + pageTel +'">';
+				strHtml+= '<div >'+regionTitle[i]+'旅館資料</div> <span class="ui-li-count">'+ regionData[i].length+'</span></a></li>';
+				
+				$("#msg1").append(strHtml);
+			}
+
+			$("a", $("#msg1")).bind("click", function(e) {
+				getItem($(this).attr("data-title"),$(this).attr("page-title"),$(this).attr("page-addr"),$(this).attr("page-tel"));
+			});
+
+			/*
+			for(j=0;j<regionTitle.length;j++){
+				if(regionTitle[j] != "" ){
+					
+					msg1 += '<li><a href="#hotel" class="ui-btn ui-btn-icon-right ui-icon-carat-r"><h3>'+ regionTitle[j]+'</h3></a></li>';
+				}
+				
+				
+			}*/
+
+			for(k=0;k<wrong.length;k++){
+
+				msg2 += '<li>第'+wrong[k]+'錯誤</li>';
+			}
+
+				/*
+				mm=data[i].display_addr.substring(0,data[i].display_addr.indexOf("區",0)+1);
+				msg1 += '<li><a href="#hotel" class="ui-btn ui-btn-icon-right ui-icon-carat-r"><h3>'+ mm+'</h3></a></li>';
+				
+			
+			}*/
+			$("#msg1").listview("refresh");
+			$("#msg2").html(msg2);
+
+		}
+
+		/*page2item*/
+		function getItem(regiontitle,pagetitle,pageaddr,pagetel) {
+			$("#hotel h1").html(regiontitle+"旅館"); // 顯示分區 header 的標題
+			$("#output2").empty();
+			var Arytitle=pagetitle.split("|"); // 取得旅館的名稱
+			var Aryaddr=pageaddr.split("|"); // 取得旅館的地址
+			var Arytel=pagetel.split("|"); // 取得旅館的電話
+
+			for( var i=0 ;i<Arytitle.length-1;i++){
+				// 建立分區各旅館的資料和超連結
+				var strHtml='<li class="ui-btn ui-btn-icon-right ui-icon-carat-r"><a href="#" data-addr="' + Aryaddr[i] + '"</a>';
+				strHtml+='<div class="title"><h3>' + Arytitle[i]+ '</h3></div>';
+				strHtml+='<div>' + Aryaddr[i]+ '</div>';
+				strHtml+='<div>' + Arytel[i] +'</div></li>';
+				$("#output2").append(strHtml) ;
+			}
+			$("a",$("#output2")).bind("click", function(e) {
+				SearchFor($(this).attr("data-addr")); // 以地址搜尋旅館位置
+			});
+
+			$("#output2").listview("refresh");
+		}
+
+		function SearchFor(addr) {
+			window.open("http://maps.google.com/maps?hl=zh-TW&q=" + addr );
+		}
+
+
+		/*swipe*/
+		(function(window, Util, PhotoSwipe){
+			
+			Util.Events.domReady(function(e){
+				
+				var instance, indicators;
+				
+				instance = PhotoSwipe.attach(
+					[
+						{ url: 'img/101.jpg', caption: 'Image 001'},
+						{ url: 'img/101.jpg', caption: 'Image 002'},
+						{ url: 'img/101.jpg', caption: 'Image 003'},
+						{ url: 'img/101.jpg', caption: 'Image 004'},
+						{ url: 'img/101.jpg', caption: 'Image 005'}
+					],
+					{
+						target: window.document.querySelectorAll('#PhotoSwipeTarget')[0],
+						preventHide: true,
+						getImageSource: function(obj){
+							return obj.url;
+						},
+						getImageCaption: function(obj){
+							return obj.caption;
+						}
+					}
+				);
+				
+				
+				indicators = window.document.querySelectorAll('#Indicators span');
+				
+				// onDisplayImage - set the current indicator
+				instance.addEventHandler(PhotoSwipe.EventTypes.onDisplayImage, function(e){
+					
+					var i, len;
+					for (i=0, len=indicators.length; i<len; i++){
+						indicators[i].setAttribute('class', '');
+					}
+					indicators[e.index].setAttribute('class', 'current');
+					
+				});
+				
+				instance.show(0);
+				
+			});
+			
+			
+		}(window, window.Code.Util, window.Code.PhotoSwipe));
+
+		/*panel*/
+		$( document ).on( "pagecreate", "#home", function() {
+
+			$( document ).on( "swipeleft swiperight", "#home", function( e ) {
+				// We check if there is no open panel on the page because otherwise
+				// a swipe to close the left panel would also open the right panel (and v.v.).
+				// We do this by checking the data that the framework stores on the page element (panel: open).
+				if ( $( ".ui-page-active" ).jqmData( "panel" ) !== "open" ) {
+					if ( e.type === "swipeleft" ) {
+						$( "#panelpagelogin" ).panel( "open" );
+					} else if ( e.type === "swiperight" ) {
+						$( "#panelpagehome" ).panel( "open" );
+					}
+				}
+			});
+			});
+</script>
+	
+	
+<body onload="aa()">
+	<!--index-->
+	<div data-role="page" id="home">
+
+			<div data-role="panel" id="panelpagehome" data-position="left" data-display="overlay">
+				
+				<div data-role="header"  data-theme="b">
+			 
+					<h1>主選單</h1>								
+				</div>
+
+				<ul data-role="listview" data-inset="true">
+						<li>
+							<a href="#home" data-role="button" class="ui-btn-active" data-icon="home">Home</a>
+						</li>
+						<li>
+							<a href="#page2" data-role="button" class="ui-btn" data-icon="star">旅館分布</a>
+						</li>
+				</ul>		
+			</div><!-- panelhome -->
+
+			<div data-role="panel" id="panelpagelogin" data-position="right" data-display="overlay">
+				
+				<div data-role="header"  data-theme="b">
+			 
+					<h1>會員登入</h1>								
+				</div>
+
+				<div data-role="fieldcontain">
+					<label for="accont">帳號:</label>
+					<input type="text" name="Name" id="Name" value="">
+				</div><!--Name-->
+				<div data-role="fieldcontain">
+					<label for="password">密碼:</label>
+					<input type="password" name="password" id="password" value="">
+				</div><!--password-->
+
+				<div class="ui-grid-a" data-theme="b">
+					<div class="ui-block-a" >
+						<a href="#" data-rel="back" class="ui-btn">登入</a>
+					</div>
+
+					<div class="ui-block-b" >
+						<a href="#login" class="ui-btn" data-rel="popup" data-position-to="window">註冊</a>
+					</div>
+
+					<div data-role="popup" id="login"  data-dismissible="false">
+						<a href="#" data-rel="back" data-role="button" data-icon="delete" data-iconpos="notext" class="ui-btn-right"></a>
+						
+						<div data-role="fieldcontain">
+							<label for="accont">帳號:</label>
+							<input type="text" name="Name" id="Name" value="">
+						</div><!--Name-->
+
+						<div data-role="fieldcontain">
+							<label for="password">密碼:</label>
+							<input type="password" name="password" id="password" value="">
+						</div><!--password-->
+
+						<div data-role="fieldcontain">
+							<label for="Name">Name:</label>
+							<input type="text" name="Name" id="Name" value="">
+						</div><!--Name-->
+
+						<div data-role="fieldcontain">
+							<label for="email">email:</label>
+							<input type="email" name="email" id="email" value="">
+						</div><!--email-->
+
+						<a href="#" data-role="button" data-icon="star" data-inline="true" data-mini="true">註冊</a>
+					</div><!--login popup-->
+				</div>
+				<div class="ui-grid-a" data-theme="b">
+					<div class="ui-block-a" >
+						<a href="#" data-rel="back" class="ui-btn">Facebook</a>
+					</div>
+
+					<div class="ui-block-b" >
+						<a href="#" class="ui-btn" >Google+</a>
+					</div>
+				</div>
+			</div><!-- panellogin -->
+
+			<div data-role="header"  data-theme="b">
+			 <a href="#" data-rel="back" data-role="button" >Back</a>
+				<h1>台北OK旅館</h1>								
+			</div>
+			<div role="main" class="ui-content">
+				<div id="PhotoSwipeTarget"></div>
+					<div id="Indicators">
+						<span></span>
+						<span></span>
+						<span></span>
+						<span></span>
+						<span></span>
+					</div>
+				
+				<ul data-role="listview" data-inset="true" id="msg1">
+					
+				</ul>
+				<ul data-role="listview" data-inset="true" id="msg2">
+					
+				</ul>
+			</div>
+			<div data-role="footer" data-position="fixed" data-theme="b">
+				<h1>頁尾</h1>
+			</div>
+		</div>
+
+		<!--page2-->
+		<div data-role="page" id="hotel">
+			<div data-role="header"  data-theme="b">
+				<a href="#" data-rel="back" data-role="button" >Back</a>
+				<h1>台北OK旅館</h1>								
+			</div>
+			<div role="main" class="ui-content">
+				<center>
+					<img class="productcover" src="./img/101.jpg" style="width: 50%; height: 300px;">
+				</center>
+				<ul data-role="listview" data-inset="true" id="output2">
+					<li ><a href="#"> 123 </a></li>
+					<li ><a href="#"> 123 </a></li>
+					<li ><a href="#"> 123 </a></li>
+				</ul>
+			</div>
+			<div data-role="footer" data-position="fixed" data-theme="b">
+				<h1>頁尾</h1>
+			</div>
+		</div>
+</body>
+</html>
